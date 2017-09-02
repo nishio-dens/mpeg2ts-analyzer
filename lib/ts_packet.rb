@@ -2,38 +2,23 @@ require 'bindata'
 
 # For more detail to learn about TS Packet, refer to the INTERNATIONAL STANDARD ISO-13818-1.
 class TsPacket < BinData::Record
+  # Constants
   TS_PACKET_SIZE = 188 # bytes
   TS_HEADER_SIZE = 4 # bytes
   TS_PAYLOAD     = TS_PACKET_SIZE - TS_HEADER_SIZE # 144 bytes
 
-  # TS Packet Structure
-  endian :big
-
-  # TS Header
-  bit8  :sync_byte
-  bit1  :transport_error_indicator
-  bit1  :payload_unit_start_indicator
-  bit1  :transport_priority
-  bit13 :pid
-  bit2  :transport_scrambling_control
-  bit2  :adaptation_field_control
-  bit4  :continuity_counter
-  # TS Payload
-  string :payload, length: TS_PAYLOAD
-
-
-  # Constants
   TS_PACKET_START_CODE = 0x47
 
   module MPEG_TS_PACKET_TYPE
-    PAT = 0x0000 # Program Association Table
-    CAT = 0x0001 # Conditional Access Table
-    PMT = 0x0002 # Program Map Table
-    NULL = 0x1fff # Null Packet
+    PAT      = 0x0000 # Program Association Table
+    CAT      = 0x0001 # Conditional Access Table
+    PMT      = 0x0002 # Program Map Table
+    RESERVED = (0x0003..0x000F)
+    # 0x0010 - 0x1FFE User defined
+    NULL     = 0x1fff # Null Packet
   end
 
   # ARIB PID
-  # http://www.arib.or.jp/english/html/overview/doc/6-STD-B10v4_6-E2.pdf
   module ARIB_PACKET_TYPE
     include MPEG_TS_PACKET_TYPE
 
@@ -60,8 +45,8 @@ class TsPacket < BinData::Record
     BAT                 = 0x004A
     EIT_ACTUAL          = 0x004E
     EIT_OTHER           = 0x004F
-    EIT_D8_ACTUAL1      = 0x0050 # 0x0050 - 0x005f
-    EIT_D8_OTHER1       = 0x0060 # 0x0060 - 0x006f
+    EIT_D8_ACTUAL1      = (0x0050..0x005f)
+    EIT_D8_OTHER1       = (0x0060..0x006f)
     TDT                 = 0x0070
     RST2                = 0x0071
     ST                  = 0x0072
@@ -79,6 +64,25 @@ class TsPacket < BinData::Record
     ADAPTATION_FIELD_ONLY        = 0b10
     ADAPTATION_FIELD_AND_PAYLOAD = 0b11
   end
+
+  PES_START_CODE = [0x00, 0x00, 0x01]
+
+
+  # TS Packet Structure
+  endian :big
+
+  # TS Header
+  bit8  :sync_byte
+  bit1  :transport_error_indicator
+  bit1  :payload_unit_start_indicator
+  bit1  :transport_priority
+  bit13 :pid
+  bit2  :transport_scrambling_control
+  bit2  :adaptation_field_control
+  bit4  :continuity_counter
+  # TS Payload
+  string :payload, length: TS_PAYLOAD
+
 
   def valid?
     sync_valid? && !transport_error?
@@ -132,8 +136,19 @@ class TsPacket < BinData::Record
   end
 
   def payload_packet
-    if has_payload?
-      puts "not implemented yet"
+    payload_data = payload_data_byte
+    case
+    when pes_packet?(payload_data)
+      PesPacket.read(StringIO.new(payload_data))
+    else
+      # PSI packet not implemented yet
+      nil
     end
+  end
+
+  private
+
+  def pes_packet?(payload_data)
+    payload_start? && payload_data[0..2].bytes == PES_START_CODE
   end
 end
