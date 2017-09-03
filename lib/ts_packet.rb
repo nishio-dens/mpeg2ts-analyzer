@@ -3,6 +3,8 @@ require 'bindata'
 # For more detail to learn about TS Packet, refer to the INTERNATIONAL STANDARD ISO-13818-1.
 class TsPacket < BinData::Record
   # Constants
+
+  # MPEG-2 Standard TS Packet size is 188bytes, but 192/204 bytes packet is exist in real world.
   TS_PACKET_SIZE = 188 # bytes
   TS_HEADER_SIZE = 4 # bytes
   TS_PAYLOAD     = TS_PACKET_SIZE - TS_HEADER_SIZE # 144 bytes

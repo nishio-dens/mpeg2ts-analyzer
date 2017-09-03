@@ -27,6 +27,22 @@ class PesPacket < BinData::Record
     PROGRAM_STREAM_DIRECTORY = 0b1111_1111
   end
 
+  module PTS_DTS_FLAG
+    NO        = 0b00
+    FORBIDDEN = 0b01
+    PTS_ONLY  = 0b10
+    PTS_DTS   = 0b11
+  end
+
+  module TRICK_MODE
+    FAST_FORWARD = 0b000
+    SLOW_MOTION  = 0b001
+    FREEZE_FRAME = 0b010
+    FAST_REVERSE = 0b011
+    SLOW_REVERSE = 0b100
+    RESERVED     = (0b101..0b111)
+  end
+
   PES_NOT_TYPE1 = [
     STREAM_ID::PROGRAM_STREAM_MAP,
     STREAM_ID::PADDING_STREAM,
@@ -47,13 +63,6 @@ class PesPacket < BinData::Record
     STREAM_ID::H222_TYPE_E
   ]
 
-  module PTS_DTS_FLAG
-    NO        = 0b00
-    FORBIDDEN = 0b01
-    PTS_ONLY  = 0b10
-    PTS_DTS   = 0b11
-  end
-
   # Pes Packet Structure
   endian :big
 
@@ -61,7 +70,7 @@ class PesPacket < BinData::Record
   bit8  :stream_id
   bit16 :pes_packet_length
 
-  struct :type1, onlyif: -> { !PES_NOT_TYPE1.include?(stream_id) } do
+  buffer :type1, onlyif: -> { !PES_NOT_TYPE1.include?(stream_id) }, length: :pes_packet_length do
     bit2 :reserved_10
     bit2 :pes_scrambling_control
     bit1 :pes_priority
@@ -105,26 +114,115 @@ class PesPacket < BinData::Record
       bit1  :marker_bit6
     end
 
-    # ESCR
+    struct :escr, onlyif: -> { escr_flag == 1 } do
+      bit2  :reserved
+      bit3  :escr_base32_30
+      bit1  :marker_bit1
+      bit15 :escr_base29_15
+      bit1  :marker_bit2
+      bit15 :escr_base14_0
+      bit1  :marker_bit3
+      bit9  :escr_extension
+      bit1  :marker_bit4
+    end
 
-    # ES
+    struct :es_rate, onlyif: -> { es_rate_flag == 1 } do
+      bit1  :marker_bit1
+      bit22 :es_rate
+      bit1  :marker_bit2
+    end
 
-    # DSM
+    struct :dsm_trick_mode, onlyif: -> { dsm_trick_mode_flag == 1 } do
+      bit3 :trick_mode_control
 
-    # ADDITIONAL COPY INFO
+      struct :fast_forward, onlyif: -> { trick_mode_control == TRICK_MODE::FAST_FORWARD } do
+        bit2 :field_id
+        bit1 :intra_frame_refresh
+        bit2 :frequency_truncation
+      end
 
-    # PES_CRC
+      struct :slow_motion,  onlyif: -> { trick_mode_control == TRICK_MODE::FAST_FORWARD } do
+        bit5 :rep_cntrl
+      end
 
-    # PES_EXTENSION
+      struct :freeze_frame, onlyif: -> { trick_mode_control == TRICK_MODE::FAST_FORWARD } do
+        bit2 :field_id
+        bit3 :reserved
+      end
 
-    # STUFFING / BYTE
+      struct :fast_reverse, onlyif: -> { trick_mode_control == TRICK_MODE::FAST_FORWARD } do
+        bit2 :field_id
+        bit1 :intra_slice_refresh
+        bit2 :frequency_truncation
+      end
+
+      struct :slow_reverse, onlyif: -> { trick_mode_control == TRICK_MODE::FAST_FORWARD } do
+        bit5 :rep_cntrl
+      end
+
+      struct :reserved,     onlyif: -> { TRICK_MODE::RESERVED.cover?(trick_mode_control) } do
+        bit5 :reserved
+      end
+    end
+
+    struct :additional_copy_info, onlyif: -> { additional_copy_info_flag == 1 } do
+      bit1 :marker_bit
+      bit7 :additional_copy_info
+    end
+
+    struct :pes_crc, onlyif: -> { pes_crc_flag == 1 } do
+      bit16 :previous_pes_packet_crc
+    end
+
+    struct :pes_extension, onlyif: -> { pes_extension_flag == 1 } do
+      bit1 :pes_private_data_flag
+      bit1 :pack_header_field_flag
+      bit1 :program_packet_sequence_counter_flag
+      bit1 :p_std_buffer_flag
+      bit3 :reserved
+      bit1 :pes_extension_flag_2
+
+      struct :pes_private_data, onlyif: -> { pes_private_data_flag == 1 } do
+        bit128 :pes_private_data
+      end
+
+      struct :pack_header_field, onlyif: -> { pack_header_field_flag == 1 } do
+        bit8 :pack_field_length
+        string :pack_header, length: :pack_field_length
+      end
+
+      struct :program_packet_sequence_counter, onlyif: -> { program_packet_sequence_counter_flag == 1 } do
+        bit1 :marker_bit1
+        bit7 :program_packet_sequence_counter
+        bit1 :marker_bit2
+        bit1 :mpeg1_mpeg2_identifier
+        bit6 :original_stuff_length
+      end
+
+      struct :p_std_buffer, onlyif: -> { p_std_buffer_flag == 1 } do
+        bit2  :reserved_01
+        bit1  :p_std_buffer_scale
+        bit13 :p_std_buffer_size
+      end
+
+      struct :pes_extension2, onlyif: -> { pes_extension_flag_2 == 1 } do
+        bit1 :marker_bit
+        bit7 :pes_extension_field_length
+        string :reserved, length: :pes_extension_field_length
+      end
+    end
+
+    # Stuffing Byte
+    #   fixed 8-bit value equal to '1111 1111' that can be inserted by the encoder
+    #   no more than 32 stuffing bytes shall be present in on PES packet header
+    rest :stuffing_byte_pes_packet_data_byte
   end
 
   struct :type2, onlyif: -> { PES_TYPE2.include?(stream_id) } do
-    # TODO
+    string :pes_packet_data_byte, length: :pes_packet_length
   end
 
   struct :padding, onlyif: -> { stream_id == STREAM_ID::PADDING_STREAM } do
-    # TODO
+    string :padding_byte, length: :padding_byte
   end
 end
