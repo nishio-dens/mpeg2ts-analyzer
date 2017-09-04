@@ -70,7 +70,7 @@ class PesPacket < BinData::Record
   bit8  :stream_id
   bit16 :pes_packet_length
 
-  buffer :type1, onlyif: -> { !PES_NOT_TYPE1.include?(stream_id) }, length: :pes_packet_length do
+  struct :type1, onlyif: -> { !PES_NOT_TYPE1.include?(stream_id) } do
     bit2 :reserved_10
     bit2 :pes_scrambling_control
     bit1 :pes_priority
@@ -219,10 +219,10 @@ class PesPacket < BinData::Record
   end
 
   struct :type2, onlyif: -> { PES_TYPE2.include?(stream_id) } do
-    string :pes_packet_data_byte, length: :pes_packet_length
+    rest :pes_packet_data_byte
   end
 
   struct :padding, onlyif: -> { stream_id == STREAM_ID::PADDING_STREAM } do
-    string :padding_byte, length: :padding_byte
+    rest :padding_byte
   end
 end
