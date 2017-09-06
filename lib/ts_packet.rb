@@ -82,8 +82,7 @@ class TsPacket < BinData::Record
   bit2  :transport_scrambling_control
   bit2  :adaptation_field_control
   bit4  :continuity_counter
-  # TS Payload
-  string :payload, length: TS_PAYLOAD
+  string :adaptation_field_and_payload, length: TS_PAYLOAD
 
 
   def valid?
@@ -123,34 +122,49 @@ class TsPacket < BinData::Record
 
   def adaptation_field
     if has_adaptation_field?
-      TsAdaptationField.read(StringIO.new(payload))
+      @_adaptation_field ||= TsAdaptationField.read(StringIO.new(adaptation_field_and_payload))
     end
   end
 
-  def payload_data_byte
+  def payload
     return nil unless has_payload?
     data_byte_start = if adaptation_field.nil?
                         0
                       else
                         adaptation_field.adaptation_field_length
                       end
-    payload[data_byte_start..-1]
+    adaptation_field_and_payload[data_byte_start..-1]
   end
 
-  def payload_packet
-    payload_data = payload_data_byte
+  def pes_start?
+    payload_start? && payload[0..2].bytes == PES_START_CODE
+  end
+
+  def psi_start?
+    payload_start? && payload[0..2].bytes != PES_START_CODE
+  end
+
+  def pointer_field
+    return nil unless psi_start?
+    payload[0].bytes[0]
+  end
+
+  def payload_data_bytes
     case
-    when pes_packet?(payload_data)
-      PesPacket.read(StringIO.new(payload_data))
+    when pes_start?
+      payload
+    when psi_start?
+      pointer = pointer_field
+      if pointer > 0
+        previous_payload = [1..pointer]
+        current_payload = [(pointer + 1)..-1]
+        [current_payload, previous_payload]
+      else
+        # first byte is pointer
+        payload[1..-1]
+      end
     else
-      # PSI packet not implemented yet
-      nil
+      payload
     end
-  end
-
-  private
-
-  def pes_packet?(payload_data)
-    payload_start? && payload_data[0..2].bytes == PES_START_CODE
   end
 end
