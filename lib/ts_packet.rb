@@ -122,7 +122,7 @@ class TsPacket < BinData::Record
 
   def adaptation_field
     if has_adaptation_field?
-      @_adaptation_field ||= TsAdaptationField.read(StringIO.new(adaptation_field_and_payload))
+      @_adaptation_field ||= AdaptationField.read(StringIO.new(adaptation_field_and_payload))
     end
   end
 

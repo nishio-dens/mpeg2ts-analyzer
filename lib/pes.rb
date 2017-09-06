@@ -1,6 +1,6 @@
 require 'bindata'
 
-class PesPacket < BinData::Record
+class Pes < BinData::Record
   # Constants
   module STREAM_ID
     PROGRAM_STREAM_MAP       = 0b1011_1100

@@ -1,6 +1,6 @@
 require 'bindata'
 
-class TsAdaptationField < BinData::Record
+class AdaptationField < BinData::Record
   endian :big
 
   # Adaptation Field Structure
