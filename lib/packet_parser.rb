@@ -107,7 +107,7 @@ class PacketParser
     table_id = data_bytes.bytes[0]
     case table_id
     when ARIB_SECTION_TYPE::PAT
-      puts "pat"
+      ProgramAssociationTable.read(data_bytes)
     else
       puts "UNKNOWN Section #{table_id.to_s(16)}"
     end
