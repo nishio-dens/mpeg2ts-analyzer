@@ -109,7 +109,7 @@ class PacketParser
     when ARIB_SECTION_TYPE::PAT
       puts "pat"
     else
-      puts table_id.to_s(16)
+      puts "UNKNOWN Section #{table_id.to_s(16)}"
     end
   end
 end
