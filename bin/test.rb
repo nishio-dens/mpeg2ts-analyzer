@@ -8,7 +8,7 @@ end
 
 video_path = ARGV[0]
 stream = TsStream.new(video_path)
-packet = stream.next
+packet_group = stream.next_packet_group
 
 binding.pry
 puts "END"
