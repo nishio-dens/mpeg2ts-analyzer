@@ -11,55 +11,6 @@ class TsPacket < BinData::Record
 
   TS_PACKET_START_CODE = 0x47
 
-  module MPEG_TS_PACKET_TYPE
-    PAT      = 0x0000 # Program Association Table
-    CAT      = 0x0001 # Conditional Access Table
-    PMT      = 0x0002 # Program Map Table
-    RESERVED = (0x0003..0x000F)
-    # 0x0010 - 0x1FFE User defined
-    NULL     = 0x1fff # Null Packet
-  end
-
-  # ARIB PID
-  module ARIB_PACKET_TYPE
-    include MPEG_TS_PACKET_TYPE
-
-    NIT                 = 0x0010 # Network Information Table
-    SDT_BAT             = 0x0011 # Service Description Table
-    EIT                 = 0x0012 # Event Information Table (For EPG)
-    RST                 = 0x0013 # Running Status Table
-    TDT_TOT             = 0x0014 # Time Date Table / Time Offset Table for current time information
-    DCT                 = 0x0017 # Download Control Table
-    DIT                 = 0x001E # Discontinuity Information Table
-    SDTT                = 0x001F # Selection Information Table
-    LIT                 = 0x0020 # Local Event Information Table
-    ERT                 = 0x0021 # Event Relation Table
-    PCAT                = 0x0022 # Partial Content Announcement Table
-    SDTT2               = 0x0023 # Selection Information Table / Software download
-    BIT                 = 0x0024 # Broadcaster Information Table (for EPG)
-    NBIT_LDT            = 0x0025 # Network Board Information Table / Linked Description Table
-    EIT2                = 0x0026 # Event Information Table (For EPG)
-    EIT3                = 0x0027 # Event Information Table (For EPG)
-    NIT_ACTUAL          = 0x0040
-    NIT_OTHER           = 0x0041
-    SDT_ACTUAL          = 0x0042
-    SDT_OTHER           = 0x0046
-    BAT                 = 0x004A
-    EIT_ACTUAL          = 0x004E
-    EIT_OTHER           = 0x004F
-    EIT_D8_ACTUAL1      = (0x0050..0x005f)
-    EIT_D8_OTHER1       = (0x0060..0x006f)
-    TDT                 = 0x0070
-    RST2                = 0x0071
-    ST                  = 0x0072
-    TOT                 = 0x0073
-    PCAT2               = 0x00C2
-    BIT_OPTIONAL        = 0x00C4
-    NBIT_OPTIONAL_BODY  = 0x00C5
-    NBIT_GBI            = 0x00C6
-    LDT                 = 0x00C7
-  end
-
   module ADAPTATION_FIELD_CODE
     RESERVED                     = 0b00
     PAYLOAD_ONLY                 = 0b01
@@ -68,7 +19,6 @@ class TsPacket < BinData::Record
   end
 
   PES_START_CODE = [0x00, 0x00, 0x01]
-
 
   # TS Packet Structure
   endian :big
@@ -101,15 +51,6 @@ class TsPacket < BinData::Record
     payload_unit_start_indicator == 1
   end
 
-  def mpeg_ts_packet_type
-    MPEG_TS_PACKET_TYPE.constants.find { |t| MPEG_TS_PACKET_TYPE.const_get(t) == pid }
-  end
-
-  # for japanese tv packet type
-  def arib_packet_type
-    ARIB_PACKET_TYPE.constants.find { |t| ARIB_PACKET_TYPE.const_get(t) == pid }
-  end
-
   def has_adaptation_field?
     adaptation_field_control == ADAPTATION_FIELD_CODE::ADAPTATION_FIELD_ONLY ||
       adaptation_field_control == ADAPTATION_FIELD_CODE::ADAPTATION_FIELD_AND_PAYLOAD
@@ -122,7 +63,7 @@ class TsPacket < BinData::Record
 
   def adaptation_field
     if has_adaptation_field?
-      @_adaptation_field ||= TsAdaptationField.read(StringIO.new(adaptation_field_and_payload))
+      @_adaptation_field ||= AdaptationField.read(StringIO.new(adaptation_field_and_payload))
     end
   end
 
@@ -156,8 +97,8 @@ class TsPacket < BinData::Record
     when psi_start?
       pointer = pointer_field
       if pointer > 0
-        previous_payload = [1..pointer]
-        current_payload = [(pointer + 1)..-1]
+        previous_payload = payload[1..pointer]
+        current_payload = payload[(pointer + 1)..-1]
         [current_payload, previous_payload]
       else
         # first byte is pointer
