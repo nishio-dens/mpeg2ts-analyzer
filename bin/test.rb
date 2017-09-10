@@ -7,8 +7,8 @@ if ENV['ENV'] == "development"
 end
 
 video_path = ARGV[0]
-stream = TsStream.new(video_path)
-packet_group = stream.next_packet_group
+parser = PacketParser.new(video_path)
+packet_group = parser.read_next
 
 binding.pry
 puts "END"
