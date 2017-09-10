@@ -225,4 +225,15 @@ class Pes < BinData::Record
   struct :padding, onlyif: -> { stream_id == STREAM_ID::PADDING_STREAM } do
     rest :padding_byte
   end
+
+  def data_byte
+    if !type1.stuffing_byte_pes_packet_data_byte.nil?
+      stuffing_byte = type1.stuffing_byte_pes_packet_data_byte.bytes.take_while { |v| v == 0xff }
+      type1.stuffing_byte_pes_packet_data_byte[stuffing_byte.length..-1]
+    elsif !type2.pes_packet_data_byte.nil?
+      type2.pes_packet_data_byte
+    else
+      nil
+    end
+  end
 end

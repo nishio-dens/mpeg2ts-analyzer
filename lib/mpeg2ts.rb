@@ -1,4 +1,5 @@
 require 'ts_packet'
 require 'ts_stream'
+require 'pes'
 require 'adaptation_field'
 require 'packet_parser'

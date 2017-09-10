@@ -13,7 +13,7 @@ class TsStream
     packet_group = []
     while packet = TsPacket.read(io.read(TsPacket::TS_PACKET_SIZE))
       if packet.payload_start?
-        packet_group = @packet_buffer
+        packet_group = @packet_buffer.push(packet)
         @packet_buffer = [packet]
 
         if @buffering
