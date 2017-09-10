@@ -156,8 +156,8 @@ class TsPacket < BinData::Record
     when psi_start?
       pointer = pointer_field
       if pointer > 0
-        previous_payload = [1..pointer]
-        current_payload = [(pointer + 1)..-1]
+        previous_payload = payload[1..pointer]
+        current_payload = payload[(pointer + 1)..-1]
         [current_payload, previous_payload]
       else
         # first byte is pointer
