@@ -12,4 +12,12 @@ class PacketParser
   def current_packet_group
     @current_packet_group
   end
+
+  def payload
+    @current_packet_group = @current_packet_group.map(&:payload).join
+  end
+
+  def adaptation_fields
+    @current_packet_group = @current_packet_group.map(&:adaptation_field).join
+  end
 end
