@@ -35,7 +35,6 @@ class ProgramAssociationTable < BinData::Record
   bit8  :last_section_number
   string :pat_data, length: -> { section_length - 9 } # 9 = 5Bytes(transport_stream_id .. last_section_number) + 4bytes(CRC)
   bit32 :crc_32
-  rest  :stuffing_byte
 
   def pat_records
     pat_data

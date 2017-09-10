@@ -108,6 +108,8 @@ class PacketParser
     case table_id
     when ARIB_SECTION_TYPE::PAT
       ProgramAssociationTable.read(data_bytes)
+    when ARIB_SECTION_TYPE::PMT
+      ProgramMapTable.read(data_bytes)
     else
       puts "UNKNOWN Section #{table_id.to_s(16)}"
     end
