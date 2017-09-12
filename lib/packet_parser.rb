@@ -113,5 +113,7 @@ class PacketParser
     else
       puts "UNKNOWN Section #{table_id.to_s(16)}"
     end
+  rescue => e
+    puts "Section Data Collapsed. Table: #{table_id}, Dump: #{data_bytes.bytes.map { |v| "%02x" % v }.join(" ")}"
   end
 end

@@ -45,7 +45,7 @@ class ProgramMapTable < BinData::Record
     end
 
     def descriptor
-      _descriptor[0..(es_info_length - 1)]
+      DescriptorParser.parse(_descriptor[0..(es_info_length - 1)])
     end
 
     def descriptor_bytes
@@ -79,9 +79,13 @@ class ProgramMapTable < BinData::Record
   bit13 :pcr_pid
   bit4  :reserved_4
   bit12 :program_info_length
-  string :descriptor, length: :program_info_length
+  string :_descriptor, length: :program_info_length
   string :pmt_data, length: -> { section_length - program_info_length - 13 } # 13 = 9Bytes(program_number .. program_info_length) + 4bytes(CRC)
   bit32 :crc_32
+
+  def descriptor
+    DescriptorParser.parse(_descriptor)
+  end
 
   def pmt_records
     records = []

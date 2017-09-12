@@ -5,3 +5,7 @@ require 'adaptation_field'
 require 'packet_parser'
 require 'program_association_table'
 require 'program_map_table'
+
+require 'descriptor_parser'
+require 'descriptor/conditional_access_descriptor'
+require 'descriptor/stream_identifier_descriptor'
